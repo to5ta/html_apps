@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .time-input {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .time-input label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .time-input input {
+            width: 80px;
+            padding: 10px;
+            font-size: 1.5em;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            transition: border-color 0.3s;
+        }
+
+        .time-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .display {
+            text-align: center;
+            font-size: 3em;
+            font-weight: bold;
+            color: #333;
+            margin: 30px 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .start-btn {
+            background: #4CAF50;
+        }
+
+        .pause-btn {
+            background: #FF9800;
+        }
+
+        .abort-btn {
+            background: #f44336;
+        }
+
+        .animation-container {
+            position: relative;
+            height: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .rocket {
+            width: 70px;
+            height: 90px;
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            margin-top: -45px;
+            transition: transform 0.5s ease-out;
+        }
+
+        .rocket.launching {
+            animation: launch 2s ease-in forwards;
+        }
+
+        @keyframes launch {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            30% {
+                transform: translateY(-50px) translateX(10px) rotate(-5deg) scale(1);
+            }
+            100% {
+                transform: translateY(-600px) translateX(50px) rotate(-10deg) scale(0.4);
+                opacity: 0;
+            }
+        }
+
+        .rocket svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.4));
+        }
+
+        .fuse-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fuse-container svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .fuse-path {
+            fill: none;
+            stroke: #bbb;
+            stroke-width: 6;
+            stroke-linecap: round;
+        }
+
+        .fuse-burn-path {
+            fill: none;
+            stroke: url(#fuseGradient);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            filter: drop-shadow(0 0 8px rgba(255, 200, 0, 0.8));
+        }
+
+        .spark {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: radial-gradient(circle, #ffeb3b 0%, #ff9800 40%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .spark.active {
+            animation: sparkle 0.4s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% {
+                opacity: 0.9;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.4);
+            }
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Rocket Timer</h1>
+        
+        <div class="input-section">
+            <div class="time-input">
+                <label>Minutes</label>
+                <input type="number" id="minutes" min="0" max="99" value="0">
+            </div>
+            <div class="time-input">
+                <label>Seconds</label>
+                <input type="number" id="seconds" min="0" max="59" value="10">
+            </div>
+        </div>
+
+        <div class="display" id="display">00:10</div>
+
+        <div class="buttons">
+            <button class="start-btn" id="startBtn">Start</button>
+            <button class="pause-btn" id="pauseBtn" disabled>Pause</button>
+            <button class="abort-btn" id="abortBtn" disabled>Abort</button>
+        </div>
+
+        <div class="animation-container">
+            <div class="rocket" id="rocket">
+                <svg viewBox="0 0 100 150" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Shadow/Base -->
+                    <ellipse cx="50" cy="108" rx="22" ry="8" fill="#555" opacity="0.3"/>
+                    
+                    <!-- Rocket body -->
+                    <defs>
+                        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#c0392b;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#e74c3c;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#c0392b;stop-opacity:1" />
+                        </linearGradient>
+                        <linearGradient id="noseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#922b21;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#c0392b;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#922b21;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    
+                    <rect x="28" y="55" width="44" height="50" fill="url(#bodyGrad)" rx="6"/>
+                    <path d="M 50 15 L 32 55 L 68 55 Z" fill="url(#noseGrad)"/>
+                    
+                    <!-- Window -->
+                    <circle cx="50" cy="72" r="10" fill="#34495e"/>
+                    <circle cx="50" cy="72" r="8" fill="#3498db"/>
+                    <circle cx="47" cy="69" r="3" fill="#5dade2" opacity="0.8"/>
+                    
+                    <!-- Fins with gradient -->
+                    <path d="M 28 85 L 10 110 L 28 98 Z" fill="#7f8c8d" stroke="#34495e" stroke-width="1"/>
+                    <path d="M 72 85 L 90 110 L 72 98 Z" fill="#7f8c8d" stroke="#34495e" stroke-width="1"/>
+                    
+                    <!-- Exhaust nozzle -->
+                    <rect x="35" y="100" width="30" height="8" fill="#34495e" rx="2"/>
+                    
+                    <!-- Flame (hidden initially) -->
+                    <g id="flame" style="opacity: 0; transform-origin: 50px 108px;">
+                        <ellipse cx="50" cy="112" rx="18" ry="10" fill="#ff6b6b" opacity="0.8"/>
+                        <ellipse cx="50" cy="118" rx="14" ry="12" fill="#ffd93d" opacity="0.9"/>
+                        <ellipse cx="50" cy="125" rx="10" ry="15" fill="#ff9800"/>
+                        <ellipse cx="50" cy="130" rx="6" ry="10" fill="#ffeb3b"/>
+                    </g>
+                </svg>
+            </div>
+            
+            <div class="fuse-container">
+                <svg width="100%" height="100%" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <linearGradient id="fuseGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#ffd93d;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#ff9800;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    
+                    <!-- Background fuse path (gray) -->
+                    <path id="fusePath" class="fuse-path" 
+                          d="M 30 200 Q 80 150, 140 180 T 260 200 Q 300 220, 340 200 L 365 200"/>
+                    
+                    <!-- Burning fuse path (colored) -->
+                    <path id="fuseBurnPath" class="fuse-burn-path" 
+                          d="M 30 200 Q 80 150, 140 180 T 260 200 Q 300 220, 340 200 L 365 200"/>
+                </svg>
+            </div>
+            <div class="spark" id="spark"></div>
+        </div>
+
+        <div class="progress-text" id="progressText">Ready to launch</div>
+    </div>
+
+    <script>
+        // Timer state
+        let totalSeconds = 0;
+        let remainingSeconds = 0;
+        let startTime = 0;
+        let timerInterval = null;
+        let animationFrameId = null;
+        let isPaused = false;
+        let isRunning = false;
+
+        // DOM elements
+        const minutesInput = document.getElementById('minutes');
+        const secondsInput = document.getElementById('seconds');
+        const display = document.getElementById('display');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const abortBtn = document.getElementById('abortBtn');
+        const fuseBurnPath = document.getElementById('fuseBurnPath');
+        const fusePath = document.getElementById('fusePath');
+        const rocket = document.getElementById('rocket');
+        const progressText = document.getElementById('progressText');
+        const flame = document.getElementById('flame');
+        const spark = document.getElementById('spark');
+
+        // Get fuse path length for animation
+        const fuseLength = fusePath.getTotalLength();
+        fuseBurnPath.style.strokeDasharray = fuseLength;
+        fuseBurnPath.style.strokeDashoffset = fuseLength;
+
+        // Get SVG container for coordinate transformation
+        const svgContainer = document.querySelector('.fuse-container svg');
+        const animationContainer = document.querySelector('.animation-container');
+
+        // Format time as MM:SS
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        // Update display
+        function updateDisplay() {
+            display.textContent = formatTime(remainingSeconds);
+        }
+
+        // Update fuse animation with smooth progress
+        function updateFuseAnimation() {
+            if (totalSeconds === 0 || !isRunning || isPaused) {
+                return;
+            }
+
+            const currentTime = Date.now();
+            const elapsedMs = currentTime - startTime;
+            const elapsedSeconds = elapsedMs / 1000;
+            remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
+            
+            // Update display
+            display.textContent = formatTime(Math.ceil(remainingSeconds));
+            
+            // Update fuse
+            const progress = elapsedSeconds / totalSeconds;
+            const offset = fuseLength - (progress * fuseLength);
+            fuseBurnPath.style.strokeDashoffset = offset;
+            
+            // Update spark position along the path
+            const point = fusePath.getPointAtLength(progress * fuseLength);
+            const svgRect = svgContainer.getBoundingClientRect();
+            const containerRect = animationContainer.getBoundingClientRect();
+            
+            // Convert SVG coordinates to container coordinates
+            const scaleX = svgRect.width / 400;
+            const scaleY = svgRect.height / 400;
+            const sparkX = (svgRect.left - containerRect.left) + (point.x * scaleX);
+            const sparkY = (svgRect.top - containerRect.top) + (point.y * scaleY);
+            
+            spark.style.left = sparkX + 'px';
+            spark.style.top = sparkY + 'px';
+            spark.classList.add('active');
+            
+            progressText.textContent = `Progress: ${Math.round(progress * 100)}%`;
+            
+            // Check if timer completed
+            if (remainingSeconds <= 0) {
+                cancelAnimationFrame(animationFrameId);
+                clearInterval(timerInterval);
+                launchRocket();
+            } else {
+                animationFrameId = requestAnimationFrame(updateFuseAnimation);
+            }
+        }
+
+        // Update fuse for paused/reset state
+        function updateFuse() {
+            if (totalSeconds === 0) {
+                fuseBurnPath.style.strokeDashoffset = fuseLength;
+                spark.classList.remove('active');
+                return;
+            }
+
+            const elapsed = totalSeconds - remainingSeconds;
+            const progress = elapsed / totalSeconds;
+            const offset = fuseLength - (progress * fuseLength);
+            fuseBurnPath.style.strokeDashoffset = offset;
+            
+            // Update spark position
+            const point = fusePath.getPointAtLength(progress * fuseLength);
+            const svgRect = svgContainer.getBoundingClientRect();
+            const containerRect = animationContainer.getBoundingClientRect();
+            
+            const scaleX = svgRect.width / 400;
+            const scaleY = svgRect.height / 400;
+            const sparkX = (svgRect.left - containerRect.left) + (point.x * scaleX);
+            const sparkY = (svgRect.top - containerRect.top) + (point.y * scaleY);
+            
+            spark.style.left = sparkX + 'px';
+            spark.style.top = sparkY + 'px';
+            
+            progressText.textContent = `Progress: ${Math.round(progress * 100)}%`;
+        }
+
+        // Launch rocket animation
+        function launchRocket() {
+            spark.classList.remove('active');
+            fuseBurnPath.style.strokeDashoffset = 0;
+            flame.style.opacity = '1';
+            rocket.classList.add('launching');
+            progressText.textContent = '🚀 Blast off!';
+            
+            setTimeout(() => {
+                rocket.classList.remove('launching');
+                flame.style.opacity = '0';
+                resetTimer();
+            }, 2000);
+        }
+
+        // Start timer
+        function startTimer() {
+            if (!isRunning) {
+                const mins = parseInt(minutesInput.value) || 0;
+                const secs = parseInt(secondsInput.value) || 0;
+                totalSeconds = mins * 60 + secs;
+                
+                if (totalSeconds === 0) {
+                    alert('Please set a time greater than 0');
+                    return;
+                }
+                
+                remainingSeconds = totalSeconds;
+                isRunning = true;
+                startTime = Date.now();
+            } else {
+                // Resume from pause
+                startTime = Date.now() - ((totalSeconds - remainingSeconds) * 1000);
+            }
+            
+            isPaused = false;
+            startBtn.textContent = 'Resume';
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            abortBtn.disabled = false;
+            minutesInput.disabled = true;
+            secondsInput.disabled = true;
+
+            // Use both setInterval for second updates and requestAnimationFrame for smooth animation
+            timerInterval = setInterval(() => {
+                // This just keeps the timer running, actual updates happen in animation frame
+            }, 100);
+
+            animationFrameId = requestAnimationFrame(updateFuseAnimation);
+        }
+
+        // Pause timer
+        function pauseTimer() {
+            isPaused = true;
+            clearInterval(timerInterval);
+            cancelAnimationFrame(animationFrameId);
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            spark.classList.remove('active');
+            updateFuse();
+            progressText.textContent = `Progress: ${Math.round(((totalSeconds - remainingSeconds) / totalSeconds) * 100)}% (Paused)`;
+        }
+
+        // Abort timer
+        function abortTimer() {
+            clearInterval(timerInterval);
+            cancelAnimationFrame(animationFrameId);
+            resetTimer();
+        }
+
+        // Reset timer
+        function resetTimer() {
+            isRunning = false;
+            isPaused = false;
+            remainingSeconds = 0;
+            totalSeconds = 0;
+            startTime = 0;
+            
+            startBtn.textContent = 'Start';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            abortBtn.disabled = true;
+            minutesInput.disabled = false;
+            secondsInput.disabled = false;
+            
+            const mins = parseInt(minutesInput.value) || 0;
+            const secs = parseInt(secondsInput.value) || 0;
+            display.textContent = formatTime(mins * 60 + secs);
+            
+            fuseBurnPath.style.strokeDashoffset = fuseLength;
+            spark.classList.remove('active');
+            progressText.textContent = 'Ready to launch';
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        abortBtn.addEventListener('click', abortTimer);
+
+        // Update display when inputs change
+        minutesInput.addEventListener('input', () => {
+            if (!isRunning) {
+                const mins = parseInt(minutesInput.value) || 0;
+                const secs = parseInt(secondsInput.value) || 0;
+                display.textContent = formatTime(mins * 60 + secs);
+            }
+        });
+
+        secondsInput.addEventListener('input', () => {
+            if (!isRunning) {
+                const mins = parseInt(minutesInput.value) || 0;
+                const secs = parseInt(secondsInput.value) || 0;
+                display.textContent = formatTime(mins * 60 + secs);
+            }
+        });
+
+        // Validate seconds input
+        secondsInput.addEventListener('change', () => {
+            let value = parseInt(secondsInput.value) || 0;
+            if (value > 59) {
+                secondsInput.value = 59;
+            } else if (value < 0) {
+                secondsInput.value = 0;
+            }
+        });
+    </script>
+</body>
+</html>
